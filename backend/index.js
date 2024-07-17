@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import session from "express-session"
 import passport from "passport";
 import { Strategy } from "passport-local";
+import GoogleStrategy from "passport-google-oauth2";
 
 import User from "./userSchema.js";
 
@@ -59,9 +60,31 @@ app.get("/secrets", (req, res) => {
     }
 });
 
+app.get("/auth/google", passport.authenticate("google", {
+    scope: [ "profile", "email"],
+
+}));
+
+// TODO: This is the route where our home (dashboard page) should be located.
+app.get("/auth/google/secrets", 
+    passport.authenticate("google", {
+        successRedirect: "/secrets",
+        failureRedirect: "/login"
+    }
+));
+
 // app.get("/login", (req, res) => {
 //     res.render("login.ejs");
 // })
+
+// TODO: In our home (dashboard) and every other page, there should be a logout button in navigation where it routes to "/logout"
+app.get("/logout", (req, res) => {
+    req.logout((err) => {
+        if (err)
+            console.log(err);
+        res.redirect("/");
+    })
+})
 
 app.post("/login", 
     passport.authenticate("local", {
@@ -126,7 +149,7 @@ app.post("/register", async (req, res) => {
 
 // ? Local strategy
 // TODO: Replace req.body.email and req.body.password with email and password after implementing the frontend i.e., after connecting the backend with the frontend login form.
-passport.use(new Strategy(async function verify(username, password, cb) {
+passport.use("local", new Strategy(async function verify(username, password, cb) {
     
     // 
     
@@ -171,6 +194,45 @@ passport.use(new Strategy(async function verify(username, password, cb) {
         return cb(err);
     }
 }));
+
+// ? Google Login Strategy
+
+passport.use("google", 
+    new GoogleStrategy({
+        clientID: process.env.GOOGLE_OAUTH_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+        callbackURL: "http://localhost:3000/auth/google/secrets",
+        userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+    }, 
+    async (accessToken, refreshToken, profile, cb) => {
+        console.log("--------------GOOGLE PROFILE INFO-----------");
+        // console.log(profile);
+        console.log("------------------")
+        try {
+            // ! Check if this google user is registered already
+            const result = await User.findOne({ email: profile.email });
+            console.log("Result: " + result);
+            // ! User not found
+            if (result == undefined) {
+                const user = await User.create({
+                    name: profile.displayName, 
+                    email: profile.email, 
+                    password: "google"
+                });
+                console.log("User: " + user);
+                // TODO: Check if it is cb(null, user) or return cb(null, user)
+                return cb(null, user);
+            } else {
+                // ! user already exists
+                // TODO: Check if it is cb(null, result) or return cb(null, result)
+                return cb(null, result);
+            }
+        } catch (err) {
+            // TODO: Check if it is cb(err) or return cb(err)
+            return cb(err);
+        }
+    }
+))
 
 passport.serializeUser((user, cb) => {
     cb(null, user);
