@@ -3,10 +3,13 @@ import bodyParser from "body-parser";
 import { connectionToDb, gettingDB } from "./db.js";
 import env from "dotenv";
 import bcrypt from "bcrypt";
-import session from "express-session"
+import session from "express-session";
+// import cookieSession from "cookie-session";
+import cookieParser from "cookie-parser";
 import passport from "passport";
 import { Strategy } from "passport-local";
 import GoogleStrategy from "passport-google-oauth2";
+import cors from "cors";
 
 import User from "./userSchema.js";
 
@@ -21,15 +24,49 @@ const saltRounds = parseInt(process.env.SALT_ROUNDS);
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+app.use(cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true,
+}));
+
+/*
+app.use(
+    cors({
+        origin: 'http://localhost:3000',
+        methods: ['GET', 'POST'],
+        allowHeaders: ['Content-Type']
+    })
+);
+*/
+
+// app.use(
+//     cookieSession({
+//         name: "session",
+//         keys: [process.env.SECRET],
+//         maxAge: 1000 * 60 * 60 * 24,
+//     }
+// ))
+
+app.use(cookieParser());
+
 // app.use(express.static("public"))
 app.use(session({
     secret: process.env.SECRET,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     cookie: {
         maxAge: 1000 * 60 * 60 * 24,
+        secure: false,
+        httpOnly: true,
+        sameSite: "strict"
     }
 }));
+
+
+
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -51,12 +88,17 @@ connectionToDb((err) => {
 });
 
 app.get("/secrets", (req, res) => {
+    
     // console.log(req);
-    console.log(req.user);
+    // console.log("Inside GET /secrets");
+    // console.log("Cookies : ", req.cookies);
+    // console.log("Session : ", req.session);
+    console.log("User : ", req.user);
+    // console.log(req.user);
     if (req.isAuthenticated()) {
         res.send( { mssg: "You are authenticated ! ", user: req.user});
     } else {
-        res.send("You are not authenticated ! ");
+        res.send( { mssg: "You are not authenticated ! ", user: null});
     }
 });
 
@@ -79,19 +121,38 @@ app.get("/auth/google/secrets",
 
 // TODO: In our home (dashboard) and every other page, there should be a logout button in navigation where it routes to "/logout"
 app.get("/logout", (req, res) => {
-    req.logout((err) => {
-        if (err)
-            console.log(err);
-        res.redirect("/");
-    })
+    // req.logout((err) => {
+    //     if (err)
+    //         console.log(err);
+    //     res.redirect("/");
+    // })
+
+    req.session = null;
+    res.redirect("/");
 })
 
-app.post("/login", 
-    passport.authenticate("local", {
-        successRedirect: "/secrets",
-        failureRedirect: "/login",
-    })
-);
+// app.post("/login", 
+//     passport.authenticate("local", {
+//         successRedirect: "/secrets",
+//         failureRedirect: "/login",
+//     })
+// );
+
+app.post("/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+        if (err) return next(err);
+        if (!user) {
+            return res.json({ message: "Invalid credentials", isAuthenticated: false }); 
+        }
+      
+    req.logIn(user, (err) => {
+        if (err) return next(err);
+        // On successful login, respond with a success message
+        return res.status(200).send({ message: "Login successful", isAuthenticated: true });
+    });
+    })(req, res, next);
+});
+  
 
 app.post("/register", async (req, res) => {
     // console.log(req.body.username);
@@ -147,6 +208,83 @@ app.post("/register", async (req, res) => {
         
 });
 
+app.post("/newtransaction", async (req, res) => {
+    // console.log("Form elements");
+    // console.log(req.body);
+    // console.log("Inside /newtransaction -> user");
+    // console.log(req.user);
+    const id = req.user.id
+    // console.log("Id: " + id);
+
+    // ? Updating account balance
+    if (req.body.transactionType == "expense") {
+        const result = await User.updateOne(
+            { _id: id, "accounts.name": req.body.from },
+            { $inc: { "accounts.$.balance": -req.body.amount } }
+        )
+
+        // console.log("....................");
+        // console.log(result);
+    } else if(req.body.transactionType == "income") {
+        const result = await User.updateOne(
+            { _id: id, "accounts.name": req.body.to },
+            { $inc: { "accounts.$.balance": req.body.amount } }
+        )
+
+    } else {
+        await User.updateOne(
+            { _id: id, "accounts.name": req.body.from },
+            { $inc: { "accounts.$.balance": -req.body.amount } }
+        );
+
+        await User.updateOne(
+            { _id: id, "accounts.name": req.body.to },
+            { $inc: { "accounts.$.balance": req.body.amount } }
+        );
+    }
+    
+
+    // ? Adding transaction to DB
+    try {
+        const result = await User.findByIdAndUpdate(
+        id,
+        { $push: { transactions: req.body }},
+        { new: true, runValidators: true }
+        );
+        res.send("Success");
+    } catch (err) {
+        res.send(err.message);
+    }
+    
+    // console.log("result: " + result);
+
+});
+
+app.post("/newaccount", async (req, res) => {
+    // console.log("req.body = " + JSON.stringify(req.body));
+    // console.log("Inside /newaccount -> user");
+    // console.log(req.user);
+    const id = req.user.id
+    // console.log("Id: " + id);
+
+    try {
+        const result = await User.findByIdAndUpdate(
+            id,
+            { $push: { accounts: {...req.body, 
+                incl_networth: req.body.incl_networth || "off", 
+                balance: parseInt(req.body.balance) 
+            }}},
+            { new: true, runValidators: true }
+        );
+        res.send("Success")
+    } catch(err) {
+        res.send(err.message)
+    }
+    
+    // console.log("result: " + result);
+
+});
+
 // ? Local strategy
 // TODO: Replace req.body.email and req.body.password with email and password after implementing the frontend i.e., after connecting the backend with the frontend login form.
 passport.use("local", new Strategy(async function verify(username, password, cb) {
@@ -163,7 +301,7 @@ passport.use("local", new Strategy(async function verify(username, password, cb)
 
         if (result == undefined) {
             // & res.send("User does not exist! Try registering.")
-            return cb("User does not exist! Try registering.");
+            return cb(null, false, { mssg: "User does not exist! Try registering." });
         } else {
             const user = await User.findById(result._id);
             // console.log(user);
@@ -184,7 +322,7 @@ passport.use("local", new Strategy(async function verify(username, password, cb)
                         // & res.send("Incorrect Password");
 
                         // User error - not really a error because of something wrong with Passport
-                        return cb(null, false); 
+                        return cb(null, false, {mssg: "Incorrect Password"}); 
                     }
                 }
             })
@@ -206,7 +344,7 @@ passport.use("google",
     }, 
     async (accessToken, refreshToken, profile, cb) => {
         console.log("--------------GOOGLE PROFILE INFO-----------");
-        // console.log(profile);
+        console.log(profile);
         console.log("------------------")
         try {
             // ! Check if this google user is registered already
@@ -217,7 +355,8 @@ passport.use("google",
                 const user = await User.create({
                     name: profile.displayName, 
                     email: profile.email, 
-                    password: "google"
+                    password: "google",
+                    picture: profile.picture,
                 });
                 console.log("User: " + user);
                 // TODO: Check if it is cb(null, user) or return cb(null, user)
@@ -235,11 +374,18 @@ passport.use("google",
 ))
 
 passport.serializeUser((user, cb) => {
-    cb(null, user);
+    console.log("Serializing user...", user._id);
+    cb(null, user._id);
 });
 
-passport.deserializeUser((user, cb) => {
-    cb(null, user);
+passport.deserializeUser(async (id, cb) => {
+    try {
+        const user = await User.findById(id);
+        console.log("Deserializing user...", user._id);
+        cb(null, user);
+    } catch (err) {
+        cb(err, null);
+    }
 });
 
 app.listen(port, () => {

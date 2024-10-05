@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import transactionSchema from "./transactionSchema.js";
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -15,7 +16,18 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
-    }
+    },
+
+    accounts: {
+        type: [],
+        required: true
+    },
+
+    transactions: {
+        type: [],
+        required: true
+    },
+
     // createdAt: {
         // type: Date,
         // immutable: true,
