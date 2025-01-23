@@ -51,15 +51,15 @@ function AccountsSelect(props) {
                         transition
                         className="absolute z-10 mt-1 max-h-56 lg:w-3/5 overflow-auto rounded-md bg-transparent py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none data-[closed]:data-[leave]:opacity-0 data-[leave]:transition data-[leave]:duration-100 data-[leave]:ease-in sm:text-sm"
                         >
-                        {accounts.map((person) => (
+                        {accounts.map((account) => (
                             <ListboxOption
-                            key={person.id}
-                            value={person}
+                            key={account.id}
+                            value={account}
                             className="group relative cursor-default select-none py-2 pl-3 pr-9 text-white font-semibold data-[focus]:bg-cyan-500 data-[focus]:text-white"
                             >
                             <div className="flex items-center">
                                 <span className="ml-3 block truncate font-normal group-data-[selected]:font-semibold">
-                                {person.name}
+                                {account.name}
                                 </span>
                             </div>
 
@@ -72,7 +72,10 @@ function AccountsSelect(props) {
                     </div>
                 </Listbox>
 
-                <input type="hidden" name={props.name} value={selected.name} />
+                <input type="hidden" name={props.name} 
+                    value={selected.name != props.name.charAt(0).toUpperCase() + props.name.slice(1) ? selected.name : undefined} 
+                    // value={selected.name}
+                />
             </div>
         </>
     )    

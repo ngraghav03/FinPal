@@ -8,8 +8,8 @@ function Dropdown(props) {
             <Menu as="div" className="relative inline-block text-left">
                 <div>
                     <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md dark:bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-700">
-                        Options
-                        {/* <img src={props.picture} width="30px" height alt="" /> */}
+                        {/* Options */}
+                        <img src={props.picture} className="w-10" alt="" />
                     <ChevronDownIcon aria-hidden="true" className="-mr-1 h-5 w-5 dark:text-white " />
                     </MenuButton>
                 </div>

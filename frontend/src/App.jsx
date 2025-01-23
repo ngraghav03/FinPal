@@ -8,6 +8,7 @@ import Dashboard from "./components/Dashboard";
 import NewTransaction from "./components/NewTransaction";
 import AppLayout from "./components/AppLayout";
 import NewAccount from "./components/NewAccount";
+import NewInvestment from "./components/NewInvestment";
 
 axios.defaults.withCredentials = true;
 
@@ -24,6 +25,7 @@ function App () {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="newtransaction" element={<NewTransaction />} />
           <Route path="newaccount" element={<NewAccount />} />
+          <Route path="newinvestment" element={<NewInvestment />} />
 
         </Route>
       </Routes>

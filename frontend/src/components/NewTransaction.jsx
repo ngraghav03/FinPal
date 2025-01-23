@@ -5,9 +5,9 @@ import DatePicker from "./DatePicker";
 import CategoryPicker from "./CategoryPicker";
 // import ButtonGroup from "./ButtonGroup";
 import { Tab, TabGroup, TabList } from "@headlessui/react";
-import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, HomeIcon } from "@heroicons/react/24/outline";
 
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function NewTransaction() {
@@ -46,9 +46,14 @@ function NewTransaction() {
     
     return (
         <>
-            <div className="dark:bg-gray-800 m-0 block">
-                <h1 className="text-3xl p-5 font-bold font-sans dark:text-slate-200">New Transaction</h1>
-
+            <div className="dark:bg-darkblue m-0 block">
+                <div className="m-4 flex">
+                    <Link className="flex flex-row p-3 dark:hover:bg-slate-600 dark:hover:rounded-xl" to={"/app/dashboard"}>
+                        <ArrowLeftIcon className="w-7 mr-2 stroke-white" strokeWidth={2}/>
+                        <HomeIcon className="w-8 stroke-white" strokeWidth={2}/>
+                    </Link>
+                    <h1 className="text-3xl p-5 font-bold font-sans dark:text-slate-200">New Transaction</h1>
+                </div>
                 {/* Button Group */}
                 {/* <div className="flex justify-center items-center">
                     <div className="inline-flex rounded-md shadow-sm" role="group">
@@ -142,10 +147,10 @@ function NewTransaction() {
                                                 <h1>{transactionType}</h1>
                                                 {
                                                     transactionType == "expense" ? 
-                                                        <AccountsSelect key="expense" name="from"/>
+                                                        <AccountsSelect name="from"/>
                                                     : (
                                                         transactionType == "income" ?
-                                                            <AccountsSelect key="income" name="to"/>
+                                                            <AccountsSelect name="to"/>
                                                         :
                                                             <div>
                                                                 <AccountsSelect name="from"/>

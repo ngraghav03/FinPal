@@ -1,5 +1,6 @@
+import { ArrowLeftIcon, HomeIcon } from "@heroicons/react/24/outline";
 import axios from "axios"; 
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function NewAccount() {
     const navigate = useNavigate();
@@ -12,7 +13,7 @@ function NewAccount() {
         const response = await axios.post("http://localhost:3000/newaccount", {
             name: formData.get("name"),
             balance: formData.get("balance"),
-            incl_networth: formData.get("incl_networth") || undefined,
+            incl_networth: formData.get("incl_networth") || "off",
         });
         // console.log(response.data);
         // if (response.data == "Success") {
@@ -24,8 +25,14 @@ function NewAccount() {
     }
 
     return (
-        <div className="dark:bg-gray-800 m-0 block h-screen">
-            <h1 className="text-3xl p-5 font-bold font-sans dark:text-white">New Account</h1>
+        <div className="dark:bg-darkblue m-0 block h-screen">
+            <div className="m-4 flex">
+                <Link className="flex flex-row p-3 dark:hover:bg-slate-600 dark:hover:rounded-xl" to={"/app/dashboard"}>
+                    <ArrowLeftIcon className="w-7 mr-2 stroke-white" strokeWidth={2}/>
+                    <HomeIcon className="w-8 stroke-white" strokeWidth={2}/>
+                </Link>
+                <h1 className="text-3xl p-5 font-bold font-sans dark:text-slate-200">New Account</h1>
+            </div>
             {/* 
             // ^ Things to add:
             // ^ Account Name, Current Balance, Include in net worth or not (boolean),    

@@ -28,6 +28,11 @@ const userSchema = new mongoose.Schema({
         required: true
     },
 
+    investments: {
+        type: [],
+        required: true
+    },
+
     // createdAt: {
         // type: Date,
         // immutable: true,

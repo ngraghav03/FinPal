@@ -10,6 +10,7 @@ import passport from "passport";
 import { Strategy } from "passport-local";
 import GoogleStrategy from "passport-google-oauth2";
 import cors from "cors";
+import axios from "axios";
 
 import User from "./userSchema.js";
 
@@ -283,6 +284,209 @@ app.post("/newaccount", async (req, res) => {
     
     // console.log("result: " + result);
 
+});
+
+app.post("/newinvestment", async (req, res) => {
+    const id = req.user.id;
+
+    
+    switch(req.body.type) {
+        // * FD added to DB
+        case "FD":
+            
+            if(!(req.body.debitAccount == null || req.body.debitAccount == "")) {
+                // ^ If a debit account is given, then adjust the debit account balance and add the details to the DB
+                try {
+                    const result = await User.updateOne(
+                        { _id: id, "accounts.name": req.body.debitAccount },
+                        { $inc: { "accounts.$.balance": -parseInt(req.body.amount) } }
+                    );
+                } catch(error) {
+                    console.log(error);
+                    res.send({message: error.message});
+                }
+            }
+                // ^ If there is no debit account given, just add the details to the DB
+                // ^ We need to add the details to the DB irrespective of whether a debit account is given or not.
+            try {
+                const result = await User.findByIdAndUpdate(
+                    id,
+                    {
+                        $push: {
+                            investments: {
+                                type: req.body.type,
+                                amount: parseInt(req.body.amount),
+                                maturityDate: req.body.maturityDate,
+                                creditAccount: req.body.creditAccount,
+                                incl_networth: req.body.incl_networth
+                            }
+                        }
+                    }
+                )
+            } catch (error) {
+                console.log(error);
+                res.send({message: error.message});
+            }
+
+            res.send({message: "success"});
+            
+            break;
+
+        case "MF":
+            // console.log("---------MF----------");
+            // console.log(req.body);
+            var shares = parseFloat(req.body.value);
+                
+            try {
+                // * Find the number of shares held given the value
+                const response = await axios.get(`https://api.mfapi.in/mf/${req.body.fundId}/latest`);
+                console.log("response data " + JSON.stringify(response.data));
+                // console.log("latest: " + response.data.data[0].nav);
+                    
+                if(req.body.valueType) {
+                    shares = parseFloat(req.body.value) / response.data.data[0].nav;
+                    // console.log("shares: " + shares);
+                }
+                
+                
+                // * Insert investment into DB
+                try {
+                    const result = await User.findByIdAndUpdate(
+                        id,
+                        {
+                            $push: {
+                                investments: {
+                                    type: req.body.type,
+                                    fundId: req.body.fundId,
+                                    shares: shares,
+                                    lastUpdatedAt: req.body.lastUpdatedAt,
+                                    incl_networth: req.body.incl_networth,
+                                }
+                            }
+                        }
+                    )
+                } catch (error) {
+                    res.send({message: error.message});
+                    console.log(error);
+                }
+
+            } catch(error) {
+                res.send({message: error.message, info: "Error from API"});
+                console.log(error);
+            }
+                
+
+            break;
+
+        case "Stocks":
+            var shares = parseFloat(req.body.value);
+            var latestStockValue;
+            
+            // * Find the latest stock price from external API
+            // TODO: Modify the codebase for better error handling. 
+            // TODO: Also, external API error can eradicated using Search Endpoint and Select List instead of manually typing symbols.
+
+            try {
+                const response = await axios.get(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${req.body.symbol}&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`);
+                let lastRefreshedAt = response.data["Meta Data"]["3. Last Refreshed"];
+
+                latestStockValue = response.data["Time Series (Daily)"][lastRefreshedAt]["4. close"];
+                console.log("latest " + latestStockValue);
+
+                // * If the given data is currently held worth of stock
+                if(req.body.valueType) {
+                    // * Find the number of shares held given the value  
+                    
+                    shares = parseFloat(req.body.value) / latestStockValue;
+                }
+                
+                // * Insert investment into DB
+                try {
+                    
+                    const result = await User.findByIdAndUpdate(
+                        id,
+                        {
+                            $push: {
+                                investments: {
+                                    type: req.body.type,
+                                    symbol: req.body.symbol,
+                                    shares: shares,
+                                    latestStockValue: latestStockValue,
+                                    lastUpdatedAt: req.body.lastUpdatedAt,
+                                    incl_networth: req.body.incl_networth,
+                                }
+                            }
+                        }
+                    )
+
+                    res.send({message: "success"});
+                } catch(error) {
+                    console.log(error);
+                    res.send({message: error.message});
+                }
+            
+            // * Error from external API
+            } catch(error) {
+                console.log(error);
+                res.send({message: error.message, info: "Error from API"});
+            }
+            
+            break;
+
+        case "Crypto":
+            // console.log("----------Crypto---------");
+            // console.log(req.body);
+            var coins = parseFloat(req.body.value);
+            var latestCoinValue;
+
+            // * Find the latest stock price from external API
+            try {
+                const response = await axios.get(`https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${req.body.symbol}&to_currency=USD&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`)
+                console.log(response.data);
+                
+                latestCoinValue = response.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+                console.log("latest: " + latestCoinValue);
+            
+                // * If the given data is currently held worth of cryptocurrency
+                if(req.body.valueType) {
+                    // * Find the number of shares held given the value  
+                    coins = parseFloat(req.body.value) / latestCoinValue;
+                }
+                
+                console.log("No of coins held = " + coins);
+                
+                // * Insert investment into DB
+                try {
+                    const result = await User.findByIdAndUpdate(
+                        id,
+                        {
+                            $push: {
+                                investments: {
+                                    type: req.body.type,
+                                    symbol: req.body.symbol,
+                                    coins: coins,
+                                    latestCoinValue: latestCoinValue,
+                                    toCurrency: response.data['Realtime Currency Exchange Rate']['3. To_Currency Code'],
+                                    lastUpdatedAt: req.body.lastUpdatedAt,
+                                    incl_networth: req.body.incl_networth,
+                                }
+                            }
+                        }
+                    )
+
+                    res.send({message: "success"});
+                } catch(error) {
+                    console.log(error);
+                    res.send({message: error.message});
+                }
+
+            } catch(error) {
+                console.log(error);
+                res.send({message: error.message, info: "Error from API"});
+            }
+
+    }
+       
 });
 
 // ? Local strategy
