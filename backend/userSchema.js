@@ -33,6 +33,11 @@ const userSchema = new mongoose.Schema({
         required: true
     },
 
+    goals: {
+        type: [],
+        required: true
+    },
+
     // createdAt: {
         // type: Date,
         // immutable: true,

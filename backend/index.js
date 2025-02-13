@@ -489,6 +489,25 @@ app.post("/newinvestment", async (req, res) => {
        
 });
 
+app.post("/newgoal", async (req, res) => {
+    const id = req.user.id;
+
+    try {
+        const result = await User.findByIdAndUpdate(
+            id,
+            { $push: { goals: 
+                {...req.body, }
+                }
+            },
+            { new: true, runValidators: true }
+        );
+        res.send({message: "Success"})
+    } catch(err) {
+        res.send(err.message)
+    }
+
+});
+
 // ? Local strategy
 // TODO: Replace req.body.email and req.body.password with email and password after implementing the frontend i.e., after connecting the backend with the frontend login form.
 passport.use("local", new Strategy(async function verify(username, password, cb) {
