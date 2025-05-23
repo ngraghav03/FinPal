@@ -10,6 +10,7 @@ import AppLayout from "./components/AppLayout";
 import NewAccount from "./components/NewAccount";
 import NewInvestment from "./components/NewInvestment";
 import NewGoal from "./components/NewGoal";
+import Goals from "./components/Goals";
 
 axios.defaults.withCredentials = true;
 
@@ -28,6 +29,7 @@ function App () {
           <Route path="newaccount" element={<NewAccount />} />
           <Route path="newinvestment" element={<NewInvestment />} />
           <Route path="newgoal" element={<NewGoal />} />
+          <Route path="goals" element={<Goals />} />
 
         </Route>
       </Routes>

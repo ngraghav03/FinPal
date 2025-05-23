@@ -10,6 +10,7 @@ export default {
         'darkestblue': "#020912",
         'darkblue': "#051428",
         "lighterblue": "#0e2743",
+        "glassblue": "#141f2c"
       }
     },
   },

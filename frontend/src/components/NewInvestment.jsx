@@ -87,9 +87,9 @@ function NewInvestment() {
         console.log(JSON.stringify(investmentObj));
         
         const response = await axios.post("http://localhost:3000/newinvestment", investmentObj);
-        console.log("response: " + JSON.stringify(response));
+        console.log("response: " + JSON.stringify(response.data));
 
-        // navigate("/app/dashboard");
+        navigate("/app/dashboard");
         
     }
 

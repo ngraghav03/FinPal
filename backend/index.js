@@ -342,10 +342,10 @@ app.post("/newinvestment", async (req, res) => {
                 // * Find the number of shares held given the value
                 const response = await axios.get(`https://api.mfapi.in/mf/${req.body.fundId}/latest`);
                 console.log("response data " + JSON.stringify(response.data));
-                // console.log("latest: " + response.data.data[0].nav);
-                    
+                
+                let nav = response.data.data[0].nav;
                 if(req.body.valueType) {
-                    shares = parseFloat(req.body.value) / response.data.data[0].nav;
+                    shares = parseFloat(req.body.value) / nav;
                     // console.log("shares: " + shares);
                 }
                 
@@ -360,12 +360,14 @@ app.post("/newinvestment", async (req, res) => {
                                     type: req.body.type,
                                     fundId: req.body.fundId,
                                     shares: shares,
+                                    lastNav: nav,
                                     lastUpdatedAt: req.body.lastUpdatedAt,
                                     incl_networth: req.body.incl_networth,
                                 }
                             }
                         }
-                    )
+                    );
+                    res.send({ message: "Success"});
                 } catch (error) {
                     res.send({message: error.message});
                     console.log(error);
