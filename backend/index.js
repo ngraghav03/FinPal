@@ -127,9 +127,10 @@ app.get("/logout", (req, res) => {
     //         console.log(err);
     //     res.redirect("/");
     // })
-
     req.session = null;
-    res.redirect("/");
+    req.user = null;
+    res.send({message: "Successfully logged out", data: req.session, user: req.user});
+
 })
 
 // app.post("/login", 

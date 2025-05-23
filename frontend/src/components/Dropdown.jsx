@@ -1,8 +1,20 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import { Cog8ToothIcon, ArrowRightStartOnRectangleIcon } from '@heroicons/react/24/outline';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function Dropdown(props) {
+    
+    const navigate = useNavigate();
+
+    async function handleLogout() {
+        event.preventDefault();
+        const response = await axios.get("http://localhost:3000/logout", { withCredentials: true });
+        console.log("Response from backend: ", response.data);
+        navigate("/login");
+    }
+
     return (
         <>
             <Menu as="div" className="relative inline-block text-left">
@@ -32,8 +44,9 @@ function Dropdown(props) {
                         <a
                         href="#"
                         className="flex items-center px-4 py-2 text-lg dark:text-red-600 text-red-700 dark:hover:bg-gray-700 dark:hover:text-red-600 daar data-[focus]:bg-gray-100 data-[focus]:text-gray-900 font-bold"
+                        onClick={handleLogout}
                         >
-                            <div className="flex"></div>
+                            
                             <ArrowRightStartOnRectangleIcon className="h-6 inline pr-3"/>
                             Logout
                         </a>
